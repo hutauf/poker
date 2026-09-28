@@ -12,12 +12,12 @@ Die HTML-Datei entspricht dem aktuellen Quellcode dieses Projekts.
 
 ## Lokal entwickeln
 
-Voraussetzungen: Node.js ab 22.13 und pnpm 11.25.0 (siehe `package.json`).
+Voraussetzungen: Node.js ab 22.13 und npm.
 Die Entwicklungsbefehle funktionieren auch unter Windows ohne Bash.
 
 ```sh
-pnpm install --frozen-lockfile
-pnpm dev
+npm ci
+npm run dev
 ```
 
 Anschließend die im Terminal angezeigte Adresse öffnen (normalerweise
@@ -26,12 +26,12 @@ http://localhost:5173).
 ## Erstellen
 
 ```sh
-pnpm build
+npm run build
 ```
 
-Der statische Web-Build liegt unter `dist/client/` und kann auf einem statischen
-Webserver bereitgestellt werden. Für Hosting in einem Unterverzeichnis müssen
-die absoluten Asset-Pfade entsprechend angepasst werden.
+Der Build liegt unter `dist/` und kann auf einem statischen Webserver oder über
+den App-Builder veröffentlicht werden. `dist/index.html` ist eine einzelne,
+vollständig eingebettete Offline-Datei.
 
 Die einzelne Offline-HTML-Datei aus dem Quellcode neu erzeugen:
 
@@ -42,7 +42,7 @@ node scripts/build-offline.mjs Pokerlabor.html
 ## Prüfen
 
 ```sh
-pnpm exec tsc --noEmit
+npm exec -- tsc --noEmit
 node --experimental-strip-types tests/poker.test.mjs
 node --experimental-strip-types tests/table.test.mjs
 node --experimental-strip-types tests/deal.test.mjs

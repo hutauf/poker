@@ -4,9 +4,6 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "Pokerlabor – Texas Hold’em entdecken",
   description: "Karten wählen, Chancen entdecken: interaktiver Texas-Hold’em-Chancenrechner für 2–10 Spieler.",
-  other: {
-    "codex-preview": "development",
-  },
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",

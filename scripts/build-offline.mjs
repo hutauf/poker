@@ -3,6 +3,7 @@ import react from '@vitejs/plugin-react';
 import { writeFile, readFile, mkdir, readdir } from 'node:fs/promises';
 import path from 'node:path';
 const root=process.cwd();
+const output=process.argv.slice(2).find(arg=>!arg.startsWith('--')) || 'dist/index.html';
 await mkdir('.sites-runtime',{recursive:true});
 await writeFile('.sites-runtime/offline.tsx',`import React from 'react'; import {createRoot} from 'react-dom/client'; import Home from '../app/page'; import '../app/globals.css'; createRoot(document.getElementById('root')!).render(<Home/>);`);
 await build({configFile:false, plugins:[react()], resolve:{alias:{'@':root}}, build:{outDir:'.sites-runtime/offline',emptyOutDir:true,lib:{entry:path.join(root,'.sites-runtime/offline.tsx'),name:'Pokerlabor',formats:['iife'],fileName:()=> 'app.js'},minify:true},define:{'process.env.NODE_ENV':'"production"'}});
@@ -11,4 +12,5 @@ const style=(await Promise.all(css.map(x=>readFile('.sites-runtime/offline/'+x,'
 const js=await readFile('.sites-runtime/offline/app.js','utf8');
 const html=`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pokerlabor</title><style>${style}</style></head><body><div id="root"></div><script>${js.replaceAll('</script','<\\/script')}</script></body></html>`;
 const imageData = 'data:image/webp;base64,' + (await readFile('public/table.webp')).toString('base64');
-await writeFile(process.argv[2],html.replaceAll('/table.webp',imageData)); console.log('Offline app ready:',process.argv[2]);
+await mkdir(path.dirname(output),{recursive:true});
+await writeFile(output,html.replaceAll('/table.webp',imageData)); console.log('Offline app ready:',output);
