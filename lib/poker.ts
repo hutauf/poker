@@ -56,17 +56,114 @@ export function evaluate(cards: number[]) {
 }
 export const handLabel = (cards: number[], language: 'de' | 'en' = 'de') => (language === 'de' ? ['Höchste Karte', 'Ein Paar', 'Zwei Paare', 'Drilling', 'Straße', 'Flush', 'Full House', 'Vierling', 'Straight Flush'] : ['High card', 'One pair', 'Two pair', 'Three of a kind', 'Straight', 'Flush', 'Full house', 'Four of a kind', 'Straight flush'])[Math.floor(evaluate(cards) / 15 ** 5)];
 export type Result = { n: number; total: number; exact: boolean; done: boolean; method: 'enumeration' | 'simulation'; values: { win: number; tie: number; equity: number }[] };
+export type CalculationPlan = { exact: boolean; total: number; workerCount: number; method: Result['method'] };
+export type ShardResult = { n: number; total: number; done: boolean; wins: number[]; ties: number[]; equity: number[] };
 const choose = (n: number, k: number) => { let x = 1; for (let i = 1; i <= k; i++) x = x * (n - i + 1) / i; return Math.round(x); };
-export function calculate(hand: Hand, update: (r: Result) => void) {
-  let cancelled = false;
+type CalculationSetup = { known: number[][]; board: number[]; deck: number[]; needs: number[]; exact: boolean; total: number; splitGroup: number; splitCount: number };
+function randomSeed() {
+  try { const value = new Uint32Array(1); crypto.getRandomValues(value); return value[0]; }
+  catch { return Math.floor(Math.random() * 0x100000000); }
+}
+function prepare(hand: Hand, seed?: number): CalculationSetup {
   const known = hand.players.map(p => p.mode === 'unknown' ? [] : p.cards.filter((c): c is number => c !== null));
   const board = hand.board.filter((c): c is number => c !== null);
   const used = new Set(usedCards(hand)), deck = Array.from({ length: 52 }, (_, i) => i).filter(c => !used.has(c));
+  if (seed !== undefined) {
+    let state = seed || 0x9e3779b9;
+    const random = () => { state ^= state << 13; state ^= state >>> 17; state ^= state << 5; return (state >>> 0) / 0x100000000; };
+    for (let i = deck.length - 1; i > 0; i--) { const j = Math.floor(random() * (i + 1)); [deck[i], deck[j]] = [deck[j], deck[i]]; }
+  }
   const needs = [...known.map(c => 2 - c.length), 5 - board.length];
   let possibilities = 1, remaining = deck.length;
-  for (const need of needs) { possibilities *= choose(remaining, need); remaining -= need; }
+  let splitGroup = -1, splitCount = 1;
+  for (let i = 0; i < needs.length; i++) {
+    const need = needs[i];
+    if (splitGroup < 0 && need > 0) { splitGroup = i; splitCount = choose(remaining, need); }
+    possibilities *= choose(remaining, need); remaining -= need;
+  }
   const allHoleCardsKnown = hand.players.every(p => p.mode !== 'unknown' && p.cards.every(c => c !== null));
   const exact = allHoleCardsKnown || possibilities <= 30000, total = exact ? possibilities : 24000;
+  if (!exact) { splitGroup = -1; splitCount = 1; }
+  return { known, board, deck, needs, exact, total, splitGroup, splitCount };
+}
+export function getCalculationPlan(hand: Hand): CalculationPlan {
+  const setup = prepare(hand);
+  const workerCount = setup.exact ? Math.min(4, setup.splitCount) : 4;
+  return { exact: setup.exact, total: setup.total, workerCount, method: setup.exact ? 'enumeration' : 'simulation' };
+}
+export function runCalculationShard(hand: Hand, workerIndex: number, workerCount: number, seed: number, update: (r: ShardResult) => void) {
+  const { known, board, deck, needs, exact, total, splitGroup, splitCount } = prepare(hand, seed);
+  const workerTotal = exact
+    ? (Math.floor(splitCount * (workerIndex + 1) / workerCount) - Math.floor(splitCount * workerIndex / workerCount)) * (total / splitCount)
+    : Math.floor(total * (workerIndex + 1) / workerCount) - Math.floor(total * workerIndex / workerCount);
+  const wins = known.map(() => 0), ties = known.map(() => 0), equity = known.map(() => 0);
+  let n = 0;
+  function* combinations(arr: number[], k: number, start = 0, picked: number[] = []): Generator<number[]> {
+    if (!k) { yield picked; return; }
+    for (let i = start; i <= arr.length - k; i++) yield* combinations(arr, k - 1, i + 1, [...picked, arr[i]]);
+  }
+  function* outcomes(group: number, available: number[], assigned: number[][]): Generator<number[][]> {
+    if (group === needs.length) { yield assigned; return; }
+    for (const chosen of combinations(available, needs[group])) {
+      assigned[group] = chosen;
+      yield* outcomes(group + 1, available.filter(c => !chosen.includes(c)), assigned);
+    }
+  }
+  function* combinationsInRange(arr: number[], k: number, start: number, end: number): Generator<number[]> {
+    const indexes = Array(k).fill(0);
+    let rank = start;
+    for (let pos = 0; pos < k; pos++) {
+      const max = arr.length - (k - pos);
+      for (let i = pos ? indexes[pos - 1] + 1 : 0; i <= max; i++) {
+        const count = choose(arr.length - i - 1, k - pos - 1);
+        if (rank < count) { indexes[pos] = i; break; }
+        rank -= count;
+      }
+    }
+    for (let current = start; current < end; current++) {
+      yield indexes.map(i => arr[i]);
+      if (current + 1 === end) break;
+      let pos = k - 1;
+      while (pos >= 0 && indexes[pos] === arr.length - k + pos) pos--;
+      if (pos < 0) return;
+      indexes[pos]++;
+      for (let j = pos + 1; j < k; j++) indexes[j] = indexes[j - 1] + 1;
+    }
+  }
+  function* exactOutcomes(): Generator<number[][]> {
+    const from = Math.floor(splitCount * workerIndex / workerCount), to = Math.floor(splitCount * (workerIndex + 1) / workerCount);
+    if (splitGroup < 0) { if (workerIndex === 0) yield needs.map(() => []); return; }
+    for (const chosen of combinationsInRange(deck, needs[splitGroup], from, to)) {
+      const assigned = needs.map(() => [] as number[]);
+      assigned[splitGroup] = chosen;
+      const available = deck.filter(c => !chosen.includes(c));
+      yield* outcomes(splitGroup + 1, available, assigned);
+    }
+  }
+  const iterator = exact ? exactOutcomes() : null;
+  function sample() {
+    if (iterator) return iterator.next().value as number[][];
+    const d = [...deck]; let at = 0;
+    return needs.map(need => Array.from({ length: need }, () => { const j = at + Math.floor(Math.random() * (d.length - at)); [d[at], d[j]] = [d[j], d[at]]; return d[at++]; }));
+  }
+  function chunk() {
+    const start = performance.now();
+    do {
+      const drawn = sample(), b = [...board, ...drawn[known.length]];
+      const scores = known.map((cards, i) => evaluate([...cards, ...drawn[i], ...b]));
+      const best = Math.max(...scores), winners = scores.flatMap((s, i) => s === best ? [i] : []);
+      for (const i of winners) { if (winners.length === 1) wins[i]++; else ties[i]++; equity[i] += 1 / winners.length; }
+      n++;
+    } while (n < workerTotal && performance.now() - start < 80);
+    update({ n, total: workerTotal, done: n === workerTotal, wins, ties, equity });
+    if (n < workerTotal) timer = setTimeout(chunk, 0);
+  }
+  let timer = setTimeout(chunk, 0);
+  return () => clearTimeout(timer);
+}
+export function calculate(hand: Hand, update: (r: Result) => void) {
+  let cancelled = false, lastUpdate = 0;
+  const { known, board, deck, needs, exact, total } = prepare(hand, randomSeed());
   const unknownSeats = known.flatMap((cards, i) => cards.length === 0 ? [i] : []);
   const wins = known.map(() => 0), ties = known.map(() => 0), equity = known.map(() => 0);
   let n = 0;
@@ -84,6 +181,16 @@ export function calculate(hand: Hand, update: (r: Result) => void) {
     const d = [...deck]; let at = 0;
     return needs.map(need => Array.from({ length: need }, () => { const j = at + Math.floor(Math.random() * (d.length - at)); [d[at], d[j]] = [d[j], d[at]]; return d[at++]; }));
   }
+  function publish() {
+    const values = known.map((_, i) => ({ win: wins[i] / n * 100, tie: ties[i] / n * 100, equity: equity[i] / n * 100 }));
+    if (unknownSeats.length > 1) {
+      const average = { win: 0, tie: 0, equity: 0 };
+      for (const i of unknownSeats) for (const key of ['win', 'tie', 'equity'] as const) average[key] += values[i][key] / unknownSeats.length;
+      for (const i of unknownSeats) values[i] = { ...average };
+    }
+    update({ n, total, exact: exact && n === total, done: n === total, method: exact ? 'enumeration' : 'simulation', values });
+    lastUpdate = performance.now();
+  }
   function chunk() {
     if (cancelled) return;
     const start = performance.now();
@@ -94,17 +201,9 @@ export function calculate(hand: Hand, update: (r: Result) => void) {
       for (const i of winners) { if (winners.length === 1) wins[i]++; else ties[i]++; equity[i] += 1 / winners.length; }
       n++;
     } while (n < total && performance.now() - start < 8);
-    const values = known.map((_, i) => ({ win: wins[i] / n * 100, tie: ties[i] / n * 100, equity: equity[i] / n * 100 }));
-    // Average exchangeable seats on every update, preserving their total share.
-    // Random deals with visible cards are concrete hands, not exchangeable seats.
-    if (unknownSeats.length > 1) {
-      const average = { win: 0, tie: 0, equity: 0 };
-      for (const i of unknownSeats) for (const key of ['win', 'tie', 'equity'] as const) average[key] += values[i][key] / unknownSeats.length;
-      for (const i of unknownSeats) values[i] = { ...average };
-    }
-    update({ n, total, exact: exact && n === total, done: n === total, method: exact ? 'enumeration' : 'simulation', values });
+    if (n === total || performance.now() - lastUpdate >= 80) publish();
     if (n < total) timer = setTimeout(chunk, 0);
   }
-  let timer = setTimeout(chunk, 80);
+  let timer = setTimeout(chunk, 0);
   return () => { cancelled = true; clearTimeout(timer); };
 }

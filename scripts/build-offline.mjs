@@ -13,4 +13,4 @@ const js=await readFile('.sites-runtime/offline/app.js','utf8');
 const html=`<!doctype html><html lang="de"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Pokerlabor</title><style>${style}</style></head><body><div id="root"></div><script>${js.replaceAll('</script','<\\/script')}</script></body></html>`;
 const imageData = 'data:image/webp;base64,' + (await readFile('public/table.webp')).toString('base64');
 await mkdir(path.dirname(output),{recursive:true});
-await writeFile(output,html.replaceAll('/table.webp',imageData)); console.log('Offline app ready:',output);
+await writeFile(output,html.replaceAll('/table.webp',imageData).replace(/[ \t]+(?=\r?$)/gm,'')); console.log('Offline app ready:',output);

@@ -56,8 +56,10 @@ node --experimental-strip-types tests/deal.test.mjs
 - Rückgängig, Spieler zurücksetzen und neue Hand mit optionalem Austeilen.
 - Sieg- und Teilungswahrscheinlichkeit; im Pro-Modus zusätzlich Topfanteil,
   benötigter Topfanteil und erwarteter Gewinn beim Mitgehen.
-- Bis 30.000 mögliche Kartenverteilungen vollständige Aufzählung, sonst
-  24.000 Monte-Carlo-Stichproben. Geschätzte Werte sind mit `~` markiert.
+- Sind alle Hole Cards bekannt, werden alle möglichen Boards exakt ausgewertet,
+  unabhängig von der Zahl der Verteilungen. Bis zu vier eingebettete Web Worker
+  rechnen parallel. In den übrigen Fällen werden bis 30.000 Verteilungen exakt
+  gezählt, sonst 24.000 Monte-Carlo-Stichproben. Schätzwerte tragen ein `~`.
 - Vollständig unbekannte, gleichwertige Spieler bekommen gemittelte Schätzwerte.
   Auch bei ausschließlich unbekannten Händen werden Siege und Teilungen simuliert.
 
@@ -65,7 +67,9 @@ node --experimental-strip-types tests/deal.test.mjs
 
 - `app/page.tsx`: Tisch, Bedienung und DE/EN-Texte.
 - `app/globals.css`: responsives Erscheinungsbild.
-- `lib/poker.ts`: Handbewertung, Chancenberechnung und Austeilen.
+- `lib/poker.ts`: Handbewertung, Berechnungslogik und Austeilen.
+- `lib/poker-client.ts`, `lib/poker-worker.ts`: parallele Berechnung mit vier
+  eingebetteten Web Workern; der Offline-Build bleibt eine einzelne HTML-Datei.
 - `lib/table.ts`: Sitzpositionen und Berechnung zum Mitgehen.
 - `public/table.webp`: erzeugtes Tischbild; `public/favicon.svg`: App-Symbol.
 - `components/ui/`: mitgelieferte UI-Bausteine.
