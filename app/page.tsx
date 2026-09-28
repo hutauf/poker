@@ -7,7 +7,7 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { initialHand, newHand, dealBoard, nextBoardSlots, cardName, usedCards, suits, ranks, handLabel, type Hand, type Mode, type Result } from '@/lib/poker';
 import { calculate } from '@/lib/poker-client';
-import { seatPositions, callMath } from '@/lib/table';
+import { seatPositions, callMath, type SeatObstacle } from '@/lib/table';
 type Target = { player: number | 'board'; slot: number };
 type Snapshot = { hand: Hand; target: Target | null; selected: number };
 const avatars = ['🦊','🐼','🐸','🐨','🦁','🐯','🐵','🐧','🐰','🐻'];
@@ -40,7 +40,14 @@ export default function Home() {
   const small = dimensions.width < 560 || dimensions.height < 410;
   const seatWidth = small ? dense ? 84 : 102 : dense ? 124 : 156;
   const seatHeight = small ? dense ? 108 : 132 : dense ? 140 : 175;
-  const positions = seatPositions(hand.players.length, dimensions.width, dimensions.height, seatWidth, seatHeight);
+  const wideLandscape = dimensions.width >= 1024 && dimensions.width > dimensions.height;
+  const centerObstacle: SeatObstacle | undefined = wideLandscape ? {
+    left: dimensions.width / 2 - Math.min(dimensions.width * .27, 260),
+    right: dimensions.width / 2 + Math.min(dimensions.width * .27, 260),
+    top: dimensions.height * .51 - Math.min(dimensions.height * .24, 145),
+    bottom: dimensions.height * .51 + Math.min(dimensions.height * .24, 145),
+  } : undefined;
+  const positions = seatPositions(hand.players.length, dimensions.width, dimensions.height, seatWidth, seatHeight, { obstacle: centerObstacle });
   const commit = (h: Hand, t: Target | null = target, s = selected) => { setHistory(prev => [...prev, state].slice(-150)); setState({ hand: h, target: t, selected: s }); };
   const undo = useCallback(() => { if (!history.length) return; setState(history[history.length - 1]); setHistory(history.slice(0, -1)); }, [history]);
   useEffect(() => { setResult(null); return calculate(hand, setResult); }, [hand]);
