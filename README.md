@@ -77,12 +77,3 @@ seiner ungenutzten Datenbank- und Anmeldebeispiele. Pokerlabor selbst verwendet
 diese nicht. Details dazu stehen in `docs/STARTER.md`.
 Die frühere Hosting-Projektkennung ist im Export entfernt.
 
-## Auf GitHub ablegen
-
-Den Ordner `pokerlabor` entpacken und seinen **Inhalt** in ein neues Repository
-übernehmen. Alternativ in diesem Ordner `git init` ausführen und das Repository
-mit GitHub verbinden. Das ZIP enthält Quellcode und Lockfile, aber keine
-installierten Abhängigkeiten, Build-Caches oder Git-Historie.
-
-Die beigefügten Lizenzhinweise für übernommene Bestandteile sind erhalten.
-Für den eigenen Projektcode ist noch keine zusätzliche Lizenz festgelegt.
