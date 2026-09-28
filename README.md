@@ -71,9 +71,3 @@ node --experimental-strip-types tests/deal.test.mjs
 - `components/ui/`: mitgelieferte UI-Bausteine.
 - `tests/`: Berechnungs- und Austeiltests.
 - `scripts/build-offline.mjs`: Export als einzelne HTML-Datei.
-
-Der ursprüngliche Vinext/Vite-Starter ist vollständig enthalten, einschließlich
-seiner ungenutzten Datenbank- und Anmeldebeispiele. Pokerlabor selbst verwendet
-diese nicht. Details dazu stehen in `docs/STARTER.md`.
-Die frühere Hosting-Projektkennung ist im Export entfernt.
-
