@@ -24,3 +24,4 @@
 @media(orientation:landscape) and (max-height:550px){.auto-deal{font-size:10px;gap:4px;padding:0;min-height:32px}.control-dock{gap:6px}.hand-modes label{padding-left:7px;padding-right:7px}.global-controls .undo span{display:none}.board-deal{font-size:10px;min-height:27px;padding:3px 8px}}
 .auto-deal [data-slot=checkbox]{border:1px solid #67817c}
 @media(orientation:portrait){.player-count small{display:none}.player-count{margin-right:0;gap:4px}.global-controls{gap:5px}}
+.picker-backdrop{position:absolute;inset:0;z-index:9;padding:0;margin:0;border:0;background:transparent}

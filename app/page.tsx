@@ -146,7 +146,6 @@ export default function Home() {
           <button className="board-deal" disabled={!nextStreet} aria-label={dealStreetLabel} onClick={() => commit(dealBoard(hand), null)}><Shuffle /><span>{dealStreetLabel}</span></button>
           {pro && <span className="table-pot"><Coins size={14} /> {tr('Topf', 'Pot')} {validMoney && Number(pot) >= 0 ? money(Number(pot)) : '–'}</span>}
         </div>
-        {!target && <div className="table-hint">{tr('Tippe auf eine Karte, um sie zu wählen.', 'Tap a card to choose it.')}</div>}
         {hand.players.map((p, i) => {
           const v = result?.values[i]; const actual = [...p.cards, ...hand.board].filter((c): c is number => c !== null);
           return <section className={`seat ${selected === p.id ? 'selected-seat' : ''}`} key={p.id} aria-label={tr(`Platz Spieler ${p.id}`, `Player ${p.id} seat`)} style={{ left: positions[i].x, top: positions[i].y, '--seat-color': colors[i] } as React.CSSProperties}>
@@ -156,10 +155,11 @@ export default function Home() {
             {!small && !dense && p.mode !== 'unknown' && p.cards.every(c => c !== null) && actual.length >= 5 && <span className="seat-hand-label">{handLabel(actual, language)}</span>}
           </section>;
         })}
+        {target && <button className="picker-backdrop" type="button" aria-label={tr('Kartenauswahl schließen', 'Close card picker')} onClick={() => setState(s => ({ ...s, target: null }))} />}
         {target && <section className="card-picker" aria-label={tr('Kartenauswahl', 'Card picker')}>
           <div className="picker-header"><div><span className="picker-eyebrow">{tr('KARTE WÄHLEN', 'CHOOSE A CARD')}</span><strong>{targetText}</strong></div><div className="picker-actions"><button aria-label={tr('Ausgewählte Karte leeren', 'Clear selected card')} title={tr('Ausgewählte Karte leeren', 'Clear selected card')} onClick={() => clearCard(target)}><RotateCcw /></button><button onClick={undo} disabled={!history.length} aria-label={tr('Letzte Änderung rückgängig', 'Undo last change')} title={tr('Rückgängig', 'Undo')}><Undo2 /></button><button className="finish-picker" onClick={() => setState({ ...state, target: null })} aria-label={tr('Kartenauswahl schließen', 'Close card picker')}><Check /><span>{tr('Fertig', 'Done')}</span></button></div></div>
           <div className="deck" aria-label={tr('Alle 52 Spielkarten', 'All 52 cards')}>{suits.map((suit, s) => <div className={`suit-row ${s === 1 || s === 2 ? 'red' : ''}`} key={suit}><span aria-hidden="true">{suit}</span>{ranks.map((rank, r) => { const c = s * 13 + r; return <button className="deck-card" key={c} disabled={used.has(c)} aria-label={`${cardName(c)}${used.has(c) ? tr(', bereits verwendet', ', already used') : ''}`} onClick={() => selectCard(c)}><b>{rank}</b><small>{used.has(c) ? <Check /> : suit}</small></button>; })}</div>)}</div>
-          <div className="picker-foot"><span>{52 - used.size} {tr('Karten frei', 'cards available')}</span><span>{tr('Nach jedem Klick geht’s direkt weiter.', 'Each pick moves to the next card.')}</span></div>
+          <div className="picker-foot"><span>{52 - used.size} {tr('Karten frei', 'cards available')}</span></div>
         </section>}
         {pro && !target && <button className="pro-jump" onClick={() => document.getElementById('pro-calculation')?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>{tr('Topf & Mitgehen', 'Pot & calling')} <ChevronDown size={13} /></button>}
         <div className="table-status" aria-live="polite">{status}{partial && <span> · {tr('Leere Karten sind unbekannt.', 'Empty cards are unknown.')}</span>}</div>

@@ -65,7 +65,8 @@ export function calculate(hand: Hand, update: (r: Result) => void) {
   const needs = [...known.map(c => 2 - c.length), 5 - board.length];
   let possibilities = 1, remaining = deck.length;
   for (const need of needs) { possibilities *= choose(remaining, need); remaining -= need; }
-  const exact = possibilities <= 30000, total = exact ? possibilities : 24000;
+  const allHoleCardsKnown = hand.players.every(p => p.mode !== 'unknown' && p.cards.every(c => c !== null));
+  const exact = allHoleCardsKnown || possibilities <= 30000, total = exact ? possibilities : 24000;
   const unknownSeats = known.flatMap((cards, i) => cards.length === 0 ? [i] : []);
   const wins = known.map(() => 0), ties = known.map(() => 0), equity = known.map(() => 0);
   let n = 0;
