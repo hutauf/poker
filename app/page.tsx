@@ -44,8 +44,9 @@ export default function Home() {
   const centerObstacle: SeatObstacle | undefined = wideLandscape ? {
     left: dimensions.width / 2 - Math.min(dimensions.width * .27, 260),
     right: dimensions.width / 2 + Math.min(dimensions.width * .27, 260),
-    top: dimensions.height * .51 - Math.min(dimensions.height * .24, 145),
-    bottom: dimensions.height * .51 + Math.min(dimensions.height * .24, 145),
+    // Keep the player seats out of the whole central lane, including the deal button.
+    top: 0,
+    bottom: dimensions.height,
   } : undefined;
   const positions = seatPositions(hand.players.length, dimensions.width, dimensions.height, seatWidth, seatHeight, { obstacle: centerObstacle });
   const commit = (h: Hand, t: Target | null = target, s = selected) => { setHistory(prev => [...prev, state].slice(-150)); setState({ hand: h, target: t, selected: s }); };

@@ -31,7 +31,7 @@ export function seatPositions(count: number, width: number, height: number, seat
     return Array.from({ length: count }, (_, i) => pointAt(perimeter * i / count));
   }
 
-  // Search for the ring rotation that best clears the central board controls.
+  // Search for a ring rotation that keeps seats outside the central board corridor.
   // The same overlap score adapts to every player count without angle tables.
   const obstacleX = (obstacle.left + obstacle.right) / 2;
   const obstacleY = (obstacle.top + obstacle.bottom) / 2;
