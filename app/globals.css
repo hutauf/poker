@@ -25,3 +25,20 @@
 .auto-deal [data-slot=checkbox]{border:1px solid #67817c}
 @media(orientation:portrait){.player-count small{display:none}.player-count{margin-right:0;gap:4px}.global-controls{gap:5px}}
 .picker-backdrop{position:absolute;inset:0;z-index:9;padding:0;margin:0;border:0;background:transparent}
+
+/* Landscape table area: its 3% side and 5% vertical insets keep the artwork
+   between 1.25:1 and 2:1. Portrait keeps the existing rotated table layout. */
+@media(orientation:landscape){
+  .game{background:#000}
+  .game-header,.game-body,.control-dock{width:100%;max-width:min(1680px,calc(191.5dvh - 293px));align-self:center}
+  .game-body{min-width:min(100%,1680px,calc(119.7dvh - 183px))}
+  .table-art{width:min(100cqw,200cqh);height:min(100cqh,80cqw)}
+  .is-pro .game-header,.is-pro .control-dock{max-width:min(1680px,calc(191.5dvh - 3px))}
+  .is-pro .game-body{min-width:min(100%,1680px,calc(119.7dvh + 107px));max-width:min(1680px,calc(191.5dvh - 3px))}
+}
+@media(orientation:landscape) and (max-height:550px){
+  .game-header,.game-body,.control-dock{max-width:min(1680px,calc(191.5dvh - 180px))}
+  .game-body{min-width:min(100%,1680px,calc(119.7dvh - 112px))}
+  .is-pro .game-header,.is-pro .control-dock{max-width:min(1680px,calc(191.5dvh + 70px))}
+  .is-pro .game-body{min-width:min(100%,1680px,calc(119.7dvh + 138px));max-width:min(1680px,calc(191.5dvh + 70px))}
+}
